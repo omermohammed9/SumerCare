@@ -2,9 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import { logger } from '../winston/logger';
-import providerRoutes from '../routes/ProviderRoutes';
-import { ErrorHandlingMiddleware } from '../middleware/ErrorHandlingMiddleware';
+import { logger } from './winston/logger';
+import providerRoutes from './routes/ProviderRoutes';
+import { ErrorHandlingMiddleware } from './middleware/ErrorHandlingMiddleware';
 
 const app = express();
 

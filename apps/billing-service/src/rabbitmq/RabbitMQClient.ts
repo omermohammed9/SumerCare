@@ -30,7 +30,7 @@ export class RabbitMQClient {
     const q = await this.channel.assertQueue(queue, { durable: true });
     await this.channel.bindQueue(q.queue, exchange, routingKey);
     
-    this.channel.consume(q.queue, (msg) => {
+    this.channel.consume(q.queue, (msg: any) => {
       if (msg) {
         callback(JSON.parse(msg.content.toString()));
         this.channel.ack(msg);

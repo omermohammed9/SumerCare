@@ -10,37 +10,40 @@ export enum ProviderAvailability {
 @Entity()
 export class Provider {
     @PrimaryGeneratedColumn('uuid')
-    id: string;
+    id!: string;
 
     @Column({ transformer: encryptionTransformer })
-    firstName: string;
+    firstName!: string;
 
     @Column({ transformer: encryptionTransformer })
-    lastName: string;
+    lastName!: string;
 
     @Column()
     @Index()
-    specialty: string;
+    specialty!: string;
 
     @Column({ unique: true })
-    licenseNumber: string;
+    licenseNumber!: string;
 
     @Column({ transformer: encryptionTransformer })
-    email: string;
+    email!: string;
 
     @Column({ nullable: true, transformer: encryptionTransformer })
-    phone: string;
+    phone!: string;
+
+    @Column({ default: true })
+    isActive!: boolean;
 
     @Column({
         type: 'enum',
         enum: ProviderAvailability,
         default: ProviderAvailability.AVAILABLE
     })
-    availability: ProviderAvailability;
+    availability!: ProviderAvailability;
 
     @CreateDateColumn()
-    createdAt: Date;
+    createdAt!: Date;
 
     @UpdateDateColumn()
-    updatedAt: Date;
+    updatedAt!: Date;
 }
