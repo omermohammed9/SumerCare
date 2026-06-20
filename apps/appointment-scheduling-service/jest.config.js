@@ -5,7 +5,7 @@ module.exports = {
   collectCoverageFrom: ['src/**/*.ts', '!src/server.ts'],
   coverageDirectory: 'coverage',
   moduleNameMapper: {
-    '^uuid$': require.resolve('uuid'),
+    '^uuid$': '<rootDir>/__mocks__/uuid.js',
     '^@/(.*)$': '<rootDir>/src/$1'
   },
   testTimeout: 60000

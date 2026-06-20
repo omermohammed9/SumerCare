@@ -3,11 +3,10 @@ import { GenericContainer, StartedTestContainer } from 'testcontainers';
 import { DataSource } from 'typeorm';
 import AppointmentService from '@/service/AppointmentService';
 import AppointmentRepository from '@/repository/AppointmentRepository';
-import redisSubscriber from '@/redis/redisSubscriber';
-import { Appointment } from '@/entity/Appointment';
 import { PatientCache } from '@/entity/PatientCache';
+import { Appointment } from '@/entity/Appointment';
+import AppDataSource from '@/database/database';
 import CreateAppointmentDTO from '@/dto/CreateAppointmentDTO';
-import { startEventSubscriber } from '@/database/subscriberService';
 import Redis from 'ioredis';
 
 describe('AppointmentService Integration', () => {
@@ -37,26 +36,24 @@ describe('AppointmentService Integration', () => {
             .withPassword('test_pass')
             .start();
 
-        const host = pgContainer.getHost();
-        const port = pgContainer.getMappedPort(5432);
-
-        dataSource = new DataSource({
-            type: 'postgres',
-            host: host,
-            port: port,
+        AppDataSource.setOptions({
+            host: pgContainer.getHost(),
+            port: pgContainer.getMappedPort(5432),
             username: 'test_user',
             password: 'test_pass',
             database: 'appointment_test_db',
             entities: [Appointment, PatientCache],
-            synchronize: true, // Auto-create schema for tests
-            logging: false,
+            synchronize: true,
+            dropSchema: true
         });
 
+        dataSource = AppDataSource;
         await dataSource.initialize();
         appointmentRepository = new AppointmentRepository(dataSource);
         appointmentService = new AppointmentService(appointmentRepository);
 
         // Start the subscriber to listen to events
+        const { startEventSubscriber } = await import('@/database/subscriberService');
         await startEventSubscriber(dataSource);
     });
 
@@ -64,6 +61,7 @@ describe('AppointmentService Integration', () => {
         if (dataSource && dataSource.isInitialized) {
             await dataSource.destroy();
         }
+        const { default: redisSubscriber } = await import('@/redis/redisSubscriber');
         await redisSubscriber.quit();
         await testRedisPublisher.quit();
         if (pgContainer) {
@@ -85,14 +83,8 @@ describe('AppointmentService Integration', () => {
         };
 
         // Use XADD since we migrated to Redis Streams
-        await testRedisPublisher.xadd(
-            'patient_events',
-            '*',
-            'event',
-            eventPayload.event,
-            'data',
-            JSON.stringify(eventPayload.data)
-        );
+        const payload = JSON.stringify(eventPayload);
+        await testRedisPublisher.xadd('patient_events', '*', 'message', payload);
 
         // Wait a brief moment for the subscriber to process the event
         await new Promise(resolve => setTimeout(resolve, 1000));

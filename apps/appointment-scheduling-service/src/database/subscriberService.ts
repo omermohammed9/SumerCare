@@ -114,6 +114,7 @@ export function startEventSubscriber(dataSource: DataSource = AppDataSource): vo
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
+      console.error('POLL ERROR:', err);
       logger.error('[Redis] Failed to initialize patient streams', { error: message });
     } finally {
       setTimeout(poll, 100);

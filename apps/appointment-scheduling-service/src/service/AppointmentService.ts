@@ -5,6 +5,7 @@ import CreateAppointmentDTO from "@/dto/CreateAppointmentDTO";
 import {isDateTimeInFuture} from "@/utils/DateUtils";
 import { PatientCache } from '@/entity/PatientCache';
 import AppDataSource from '@/database/database';
+
 import logger from '@/winston/WinstonLogger';
 import { createCircuitBreaker } from '@/utils/circuitBreaker';
 import { dbQueryDurationMicroseconds } from '@/metrics/metricsService';

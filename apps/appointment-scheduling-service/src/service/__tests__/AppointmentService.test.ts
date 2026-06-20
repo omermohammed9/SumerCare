@@ -36,7 +36,12 @@ describe('AppointmentService', () => {
             createAppointment: jest.fn(),
             updateAppointment: jest.fn(),
             deleteAppoitment: jest.fn(),
-            isAppointmentSlotTaken: jest.fn()
+            isAppointmentSlotTaken: jest.fn(),
+            manager: {
+                getRepository: jest.fn().mockReturnValue({
+                    findOneBy: jest.fn().mockResolvedValue({ id: 1, name: 'John Doe' })
+                })
+            }
         } as any;
         appointmentService = new AppointmentService(mockAppointmentRepository);
         jest.clearAllMocks();

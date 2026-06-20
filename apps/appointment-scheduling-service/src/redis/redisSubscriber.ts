@@ -7,19 +7,23 @@
 import Redis from 'ioredis';
 import logger from '@/winston/WinstonLogger';
 
-const redisSubscriber = new Redis({
-  sentinels: [
-    { host: process.env.REDIS_SENTINEL_HOST || 'localhost', port: parseInt(process.env.REDIS_SENTINEL_PORT || '26379') }
-  ],
-  name: 'mymaster',
-  retryStrategy(times: number): number {
-    const delay = Math.min(times * 200, 3000);
-    logger.warn(`[Redis Subscriber] Retry #${times} in ${delay}ms`);
-    return delay;
-  },
-  enableOfflineQueue: false,
-  connectTimeout: 10000,
-});
+const redisConfig = process.env.REDIS_URL 
+  ? process.env.REDIS_URL 
+  : {
+      sentinels: [
+        { host: process.env.REDIS_SENTINEL_HOST || 'localhost', port: parseInt(process.env.REDIS_SENTINEL_PORT || '26379') }
+      ],
+      name: 'mymaster',
+      retryStrategy(times: number): number {
+        const delay = Math.min(times * 200, 3000);
+        logger.warn(`[Redis Subscriber] Retry #${times} in ${delay}ms`);
+        return delay;
+      },
+      enableOfflineQueue: false,
+      connectTimeout: 10000,
+    };
+
+const redisSubscriber = new Redis(redisConfig as any);
 
 redisSubscriber.on('connect', () => logger.info('[Redis Subscriber] Connected to Sentinel'));
 redisSubscriber.on('reconnecting', (ms: number) => logger.warn(`[Redis Subscriber] Reconnecting in ${ms}ms`));

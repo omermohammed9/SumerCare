@@ -19,6 +19,10 @@ class AppointmentRepository implements IAppointmentRepository {
     constructor(private database: DataSource) {
         this.AppointmentRepository = this.database.getRepository(Appointment);
     }
+
+    get manager() {
+        return this.database.manager;
+    }
     async isAppointmentSlotTaken(date: Date, time: string, duration: number, excludeAppointmentId?: number): Promise<boolean> {
         const { startDateTime, endDateTime } = calculateStartEndDateTime(date, time, duration);
         const overlappingCount = await checkOverlappingAppointments(this.AppointmentRepository, date, startDateTime, endDateTime, excludeAppointmentId);
