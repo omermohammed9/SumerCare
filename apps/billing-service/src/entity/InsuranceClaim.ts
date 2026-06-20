@@ -9,29 +9,29 @@ export enum ClaimStatus {
 @Entity()
 export class InsuranceClaim {
     @PrimaryGeneratedColumn('uuid')
-    id: string;
+    id!: string;
 
     @Column()
     @Index()
-    patientId: string;
+    patientId!: string;
 
     @Column()
     @Index()
-    invoiceId: string;
+    invoiceId!: string;
 
     @Column('decimal', { precision: 10, scale: 2 })
-    claimAmount: number;
+    claimAmount!: number;
 
     @Column({
         type: 'enum',
         enum: ClaimStatus,
         default: ClaimStatus.PENDING
     })
-    status: ClaimStatus;
+    status!: ClaimStatus;
 
     @CreateDateColumn()
-    createdAt: Date;
+    createdAt!: Date;
 
     @UpdateDateColumn()
-    updatedAt: Date;
+    updatedAt!: Date;
 }

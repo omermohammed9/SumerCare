@@ -2,8 +2,8 @@ import amqp, { Connection, Channel } from 'amqplib';
 import { logger } from '../winston/logger';
 
 export class RabbitMQClient {
-  private static connection: Connection;
-  private static channel: Channel;
+  private static connection: any;
+  private static channel: any;
   private static readonly url = process.env.RABBITMQ_URL || 'amqp://localhost:5672';
 
   static async connect() {
