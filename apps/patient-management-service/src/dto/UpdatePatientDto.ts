@@ -23,7 +23,7 @@ class UpdatePatientDto {
         message: 'Gender must be either "male" or "female"',
     })
     @Length(2, 8)
-    gender?: string = 'male' || 'female' || 'other';
+    gender?: string;
 
     @IsOptional()
     @IsDateString()
