@@ -1,0 +1,15 @@
+version: '3.9'
+services:
+  postgres-patient:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: PatientManagementService
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
