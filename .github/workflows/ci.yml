@@ -11,15 +11,21 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: ['Patient Management Service', 'appointment scheduling service']
+        service: [
+          'apps/patient-management-service', 
+          'apps/appointment-scheduling-service',
+          'apps/provider-management-service',
+          'apps/medical-records-service',
+          'apps/billing-service'
+        ]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - name: Use Node.js 20.x
-      uses: actions/setup-node@v3
+    - name: Use Node.js 24.x
+      uses: actions/setup-node@v4
       with:
-        node-version: 20.x
+        node-version: 24.x
         cache: 'npm'
         cache-dependency-path: '${{ matrix.service }}/package-lock.json'
 

@@ -10,25 +10,46 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }} # Or use CR_PAT for external registries
 
       - name: Build and Push Patient Management Service
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
-          context: "./Patient Management Service"
+          context: "./apps/patient-management-service"
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/patient-management-service:latest
 
       - name: Build and Push Appointment Scheduling Service
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
-          context: "./appointment scheduling service"
+          context: "./apps/appointment-scheduling-service"
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/appointment-scheduling-service:latest
+
+      - name: Build and Push Provider Management Service
+        uses: docker/build-push-action@v6
+        with:
+          context: "./apps/provider-management-service"
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/provider-management-service:latest
+
+      - name: Build and Push Medical Records Service
+        uses: docker/build-push-action@v6
+        with:
+          context: "./apps/medical-records-service"
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/medical-records-service:latest
+
+      - name: Build and Push Billing Service
+        uses: docker/build-push-action@v6
+        with:
+          context: "./apps/billing-service"
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/billing-service:latest
