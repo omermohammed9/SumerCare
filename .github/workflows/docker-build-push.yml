@@ -25,7 +25,8 @@ jobs:
       - name: Build and Push Patient Management Service
         uses: docker/build-push-action@v6
         with:
-          context: "./apps/patient-management-service"
+          context: "."
+          file: "./apps/patient-management-service/Dockerfile"
           push: true
           no-cache: true
           tags: ghcr.io/${{ github.repository_owner }}/patient-management-service:latest
@@ -33,7 +34,8 @@ jobs:
       - name: Build and Push Appointment Scheduling Service
         uses: docker/build-push-action@v6
         with:
-          context: "./apps/appointment-scheduling-service"
+          context: "."
+          file: "./apps/appointment-scheduling-service/Dockerfile"
           push: true
           no-cache: true
           tags: ghcr.io/${{ github.repository_owner }}/appointment-scheduling-service:latest
@@ -41,7 +43,8 @@ jobs:
       - name: Build and Push Provider Management Service
         uses: docker/build-push-action@v6
         with:
-          context: "./apps/provider-management-service"
+          context: "."
+          file: "./apps/provider-management-service/Dockerfile"
           push: true
           no-cache: true
           tags: ghcr.io/${{ github.repository_owner }}/provider-management-service:latest
@@ -49,7 +52,8 @@ jobs:
       - name: Build and Push Medical Records Service
         uses: docker/build-push-action@v6
         with:
-          context: "./apps/medical-records-service"
+          context: "."
+          file: "./apps/medical-records-service/Dockerfile"
           push: true
           no-cache: true
           tags: ghcr.io/${{ github.repository_owner }}/medical-records-service:latest
@@ -57,7 +61,9 @@ jobs:
       - name: Build and Push Billing Service
         uses: docker/build-push-action@v6
         with:
-          context: "./apps/billing-service"
+          context: "."
+          file: "./apps/billing-service/Dockerfile"
           push: true
           no-cache: true
           tags: ghcr.io/${{ github.repository_owner }}/billing-service:latest
+

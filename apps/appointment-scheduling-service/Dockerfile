@@ -1,26 +1,30 @@
-# ── Build Stage ─────────────────────────────────────────────
 FROM node:24-alpine AS builder
+
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY tsconfig*.json ./
-COPY src ./src
-RUN npm run build
 
+COPY . .
 
-# ── Production Stage ────────────────────────────────────────
+RUN npm ci
+
+RUN npm run build -w apps/appointment-scheduling-service
+
+RUN npm prune --omit=dev
+
+# -- Production Stage ----------------------------------------
 FROM node:24-alpine AS production
+
 WORKDIR /app
+
 ENV NODE_ENV=production
 
-# Copy only production artifacts
-COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
-COPY package.json ./
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/apps/appointment-scheduling-service/package*.json ./apps/appointment-scheduling-service/
+COPY --from=builder /app/apps/appointment-scheduling-service/dist ./apps/appointment-scheduling-service/dist
 
-# Non-root user for security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-USER appuser
+USER node
 
 EXPOSE 8000
+
+WORKDIR /app/apps/appointment-scheduling-service
 CMD ["node", "dist/server.js"]

@@ -1,25 +1,30 @@
-# ── Build Stage ─────────────────────────────────────────────
 FROM node:24-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY tsconfig*.json ./
-COPY src ./src
-RUN npm run build
 
-# ── Production Stage ────────────────────────────────────────
-FROM node:24-alpine AS production
 WORKDIR /app
+
+COPY . .
+
+RUN npm ci
+
+RUN npm run build -w apps/patient-management-service
+
+RUN npm prune --omit=dev
+
+# -- Production Stage ----------------------------------------
+FROM node:24-alpine AS production
+
+WORKDIR /app
+
 ENV NODE_ENV=production
 
-# Copy only production artifacts
-COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
-COPY package.json ./
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/apps/patient-management-service/package*.json ./apps/patient-management-service/
+COPY --from=builder /app/apps/patient-management-service/dist ./apps/patient-management-service/dist
 
-# Non-root user for security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-USER appuser
+USER node
 
 EXPOSE 5000
+
+WORKDIR /app/apps/patient-management-service
 CMD ["node", "dist/server.js"]

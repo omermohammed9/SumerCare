@@ -1,28 +1,30 @@
 FROM node:24-alpine AS builder
 
-WORKDIR /usr/src/app
-
-COPY package*.json ./
-# Since we are in a monorepo, we might need turbo or workspace setups. 
-# For now, we install directly in this dir.
-RUN npm install
+WORKDIR /app
 
 COPY . .
 
-RUN npm run build
+RUN npm ci
 
+RUN npm run build -w apps/provider-management-service
+
+RUN npm prune --omit=dev
+
+# -- Production Stage ----------------------------------------
 FROM node:24-alpine AS production
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
-COPY --from=builder /usr/src/app/package*.json ./
-RUN npm install --omit=dev
+ENV NODE_ENV=production
 
-COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/apps/provider-management-service/package*.json ./apps/provider-management-service/
+COPY --from=builder /app/apps/provider-management-service/dist ./apps/provider-management-service/dist
 
-# Non-root user
 USER node
 
 EXPOSE 6000
 
+WORKDIR /app/apps/provider-management-service
 CMD ["node", "dist/server.js"]
