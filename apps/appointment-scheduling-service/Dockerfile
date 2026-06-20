@@ -8,7 +8,7 @@ RUN npm ci
 
 RUN npm run build -w apps/appointment-scheduling-service
 
-RUN npm prune --omit=dev
+RUN npm prune --omit=dev --ignore-scripts
 
 # -- Production Stage ----------------------------------------
 FROM node:24-alpine AS production
