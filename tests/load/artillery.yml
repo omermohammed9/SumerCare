@@ -1,0 +1,37 @@
+config:
+  target: "http://localhost:5000"
+  environments:
+    patient:
+      target: "http://localhost:5000"
+    appointment:
+      target: "http://localhost:8000"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      rampTo: 20
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 20
+      name: "Sustained load"
+  plugins:
+    metrics-by-endpoint: {}
+
+scenarios:
+  - name: "Create patient and schedule appointment"
+    flow:
+      - post:
+          url: "/patient"
+          json:
+            name: "Load Test User"
+            dateOfBirth: "1990-01-01"
+            nationalId: "{{ $randomString() }}"
+          capture:
+            - json: "$.id"
+              as: "patientId"
+      - post:
+          url: "http://localhost:8000/appointment"
+          json:
+            patientId: "{{ patientId }}"
+            date: "2026-10-10"
+            AppointmentTime: "10:00"
+            duration: 30

@@ -1,0 +1,34 @@
+name: Docker Build & Push
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }} # Or use CR_PAT for external registries
+
+      - name: Build and Push Patient Management Service
+        uses: docker/build-push-action@v4
+        with:
+          context: "./Patient Management Service"
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/patient-management-service:latest
+
+      - name: Build and Push Appointment Scheduling Service
+        uses: docker/build-push-action@v4
+        with:
+          context: "./appointment scheduling service"
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/appointment-scheduling-service:latest

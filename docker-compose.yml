@@ -1,0 +1,362 @@
+version: '3.9'
+
+# ──────────────────────────────────────────────────────────────
+#  Microservices Workspace — Full Orchestration
+#  Services: patient-management | appointment-scheduling | redis | postgres
+# ──────────────────────────────────────────────────────────────
+
+networks:
+  microservices-net:
+    driver: bridge
+
+volumes:
+  postgres_patient_data:
+  postgres_appointment_data:
+  postgres_provider_data:
+  postgres_medical_data:
+  postgres_billing_data:
+  redis_data:
+
+services:
+
+  # ── Infrastructure ─────────────────────────────────────────
+
+  redis-master:
+    image: redis:7-alpine
+    container_name: microservices-redis-master
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-net
+
+  redis-replica:
+    image: redis:7-alpine
+    container_name: microservices-redis-replica
+    restart: unless-stopped
+    command: redis-server --replicaof redis-master 6379 --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    depends_on:
+      redis-master:
+        condition: service_healthy
+    networks:
+      - microservices-net
+
+  redis-sentinel:
+    image: bitnami/redis-sentinel:latest
+    container_name: microservices-redis-sentinel
+    restart: unless-stopped
+    environment:
+      - REDIS_MASTER_SET=mymaster
+      - REDIS_MASTER_HOST=redis-master
+      - REDIS_MASTER_PORT=6379
+      - REDIS_SENTINEL_QUORUM=1
+    ports:
+      - "26379:26379"
+    depends_on:
+      redis-master:
+        condition: service_healthy
+      redis-replica:
+        condition: service_started
+    networks:
+      - microservices-net
+
+  postgres-patient:
+    image: postgres:15-alpine
+    container_name: microservices-postgres-patient
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: PatientManagementService
+      POSTGRES_USER: ${PATIENT_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${PATIENT_DB_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_patient_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PATIENT_DB_USER:-postgres} -d PatientManagementService"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-net
+
+  postgres-appointment:
+    image: postgres:15-alpine
+    container_name: microservices-postgres-appointment
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: AppointmentSchedulingService
+      POSTGRES_USER: ${APPOINTMENT_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${APPOINTMENT_DB_PASSWORD:-postgres}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_appointment_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${APPOINTMENT_DB_USER:-postgres} -d AppointmentSchedulingService"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-net
+
+  postgres-provider:
+    image: postgres:15-alpine
+    container_name: microservices-postgres-provider
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ProviderManagementService
+      POSTGRES_USER: ${PROVIDER_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${PROVIDER_DB_PASSWORD:-postgres}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_provider_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PROVIDER_DB_USER:-postgres} -d ProviderManagementService"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-net
+
+  postgres-medical:
+    image: postgres:15-alpine
+    container_name: microservices-postgres-medical
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: medical_records_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_medical_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d medical_records_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-net
+
+  postgres-billing:
+    image: postgres:15-alpine
+    container_name: microservices-postgres-billing
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: billing_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_billing_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d billing_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-net
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: microservices-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - microservices-net
+
+  # ── Services ───────────────────────────────────────────────
+
+  patient-management:
+    build:
+      context: ./apps/patient-management-service
+      dockerfile: Dockerfile
+    container_name: patient-management-service
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./apps/patient-management-service/src/.env
+    environment:
+      - REDIS_SENTINEL_HOST=redis-sentinel
+      - REDIS_SENTINEL_PORT=26379
+      - DB_HOST=postgres-patient
+      - DB_PORT=5432
+    depends_on:
+      redis-sentinel:
+        condition: service_started
+      postgres-patient:
+        condition: service_healthy
+    networks:
+      - microservices-net
+
+  appointment-scheduling:
+    build:
+      context: ./apps/appointment-scheduling-service
+      dockerfile: Dockerfile
+    container_name: appointment-scheduling-service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./apps/appointment-scheduling-service/src/.env
+    environment:
+      - REDIS_SENTINEL_HOST=redis-sentinel
+      - REDIS_SENTINEL_PORT=26379
+      - DB_HOST=postgres-appointment
+      - DB_PORT=5432
+    depends_on:
+      redis-sentinel:
+        condition: service_started
+      postgres-appointment:
+        condition: service_healthy
+      patient-management:
+        condition: service_started
+    networks:
+      - microservices-net
+
+  provider-management:
+    build:
+      context: ./apps/provider-management-service
+      dockerfile: Dockerfile
+    container_name: provider-management-service
+    restart: unless-stopped
+    ports:
+      - "6000:6000"
+    env_file:
+      - ./apps/provider-management-service/src/.env
+    environment:
+      - REDIS_SENTINEL_HOST=redis-sentinel
+      - REDIS_SENTINEL_PORT=26379
+      - DB_HOST=postgres-provider
+      - DB_PORT=5432
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      redis-sentinel:
+        condition: service_started
+      postgres-provider:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    networks:
+      - microservices-net
+
+  medical-records:
+    build:
+      context: ./apps/medical-records-service
+      dockerfile: Dockerfile
+    container_name: medical-records-service
+    restart: unless-stopped
+    ports:
+      - "7000:7000"
+    environment:
+      - DB_HOST=postgres-medical
+      - DB_PORT=5432
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - NODE_ENV=development
+    depends_on:
+      postgres-medical:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    networks:
+      - microservices-net
+
+  billing:
+    build:
+      context: ./apps/billing-service
+      dockerfile: Dockerfile
+    container_name: billing-service
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      - DB_HOST=postgres-billing
+      - DB_PORT=5432
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - NODE_ENV=development
+    depends_on:
+      postgres-billing:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    networks:
+      - microservices-net
+
+  ai-analytics:
+    build:
+      context: ./ai-analytics-service
+      dockerfile: Dockerfile
+    container_name: ai-analytics-service
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    environment:
+      - LLM_API_KEY=${LLM_API_KEY:-}
+    networks:
+      - microservices-net
+
+  graphql-gateway:
+    build:
+      context: ./graphql-gateway
+    container_name: microservices-graphql-gateway
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - PATIENT_SERVICE_URL=http://patient-management:5000
+      - APPOINTMENT_SERVICE_URL=http://appointment-scheduling:8000
+      - PROVIDER_SERVICE_URL=http://provider-management:6000
+    depends_on:
+      - patient-management
+      - appointment-scheduling
+      - provider-management
+    networks:
+      - microservices-net
+
+  # ── Gateway & GitOps (Phase 7) ─────────────────────────────
+
+  api-gateway:
+    image: nginx:alpine
+    container_name: microservices-api-gateway
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - patient-management
+      - appointment-scheduling
+      - provider-management
+      - medical-records
+      - billing
+      - graphql-gateway
+    networks:
+      - microservices-net
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: microservices-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 300 --cleanup
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=300
+    networks:
+      - microservices-net
