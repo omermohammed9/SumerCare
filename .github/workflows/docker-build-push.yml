@@ -24,6 +24,7 @@ jobs:
         with:
           context: "./apps/patient-management-service"
           push: true
+          no-cache: true
           tags: ghcr.io/${{ github.repository_owner }}/patient-management-service:latest
 
       - name: Build and Push Appointment Scheduling Service
@@ -31,6 +32,7 @@ jobs:
         with:
           context: "./apps/appointment-scheduling-service"
           push: true
+          no-cache: true
           tags: ghcr.io/${{ github.repository_owner }}/appointment-scheduling-service:latest
 
       - name: Build and Push Provider Management Service
@@ -38,6 +40,7 @@ jobs:
         with:
           context: "./apps/provider-management-service"
           push: true
+          no-cache: true
           tags: ghcr.io/${{ github.repository_owner }}/provider-management-service:latest
 
       - name: Build and Push Medical Records Service
@@ -45,6 +48,7 @@ jobs:
         with:
           context: "./apps/medical-records-service"
           push: true
+          no-cache: true
           tags: ghcr.io/${{ github.repository_owner }}/medical-records-service:latest
 
       - name: Build and Push Billing Service
@@ -52,4 +56,5 @@ jobs:
         with:
           context: "./apps/billing-service"
           push: true
+          no-cache: true
           tags: ghcr.io/${{ github.repository_owner }}/billing-service:latest
