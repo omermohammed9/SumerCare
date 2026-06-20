@@ -1,31 +1,22 @@
 import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { GenericContainer, StartedTestContainer } from 'testcontainers';
 import { DataSource } from 'typeorm';
 import { PatientService } from '@/service/PatientService';
 import { PatientRepository } from '@/repository/PatientRepository';
-import redisPublisher from '@/redis/redisPublisher';
 import Patient from '@/entity/Patient';
 import CreatePatientDto from '@/dto/CreatePatientDto';
 
+jest.mock('@/redis/redisPublisher', () => ({
+    xadd: jest.fn().mockResolvedValue('msg-id'),
+    quit: jest.fn().mockResolvedValue('OK')
+}));
+
 describe('PatientService Integration', () => {
     let pgContainer: StartedPostgreSqlContainer;
-    let redisContainer: StartedTestContainer;
     let dataSource: DataSource;
     let patientService: PatientService;
     let patientRepository: PatientRepository;
 
     beforeAll(async () => {
-        // Start Redis container
-        redisContainer = await new GenericContainer('redis:7-alpine')
-            .withExposedPorts(6379)
-            .start();
-
-        const redisUrl = `redis://${redisContainer.getHost()}:${redisContainer.getMappedPort(6379)}`;
-        process.env.REDIS_URL = redisUrl;
-
-        // Initialize Publisher
-        await redisPublisher.connect();
-
         // Start Postgres container
         pgContainer = await new PostgreSqlContainer('postgres:15-alpine')
             .withDatabase('patient_test_db')
@@ -57,12 +48,8 @@ describe('PatientService Integration', () => {
         if (dataSource && dataSource.isInitialized) {
             await dataSource.destroy();
         }
-        await redisPublisher.quit();
         if (pgContainer) {
             await pgContainer.stop();
-        }
-        if (redisContainer) {
-            await redisContainer.stop();
         }
     });
 
